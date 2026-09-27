@@ -1,15 +1,28 @@
 FROM ghcr.io/selkies-project/selkies/desktop:main-ubuntu26.04
 
-# Railway will run the container's main process as UID 0.
-# We deliberately do NOT replace Selkies' sudo/fakeroot setup.
-#
-# The important distinction is:
-#   - build image remains the official Selkies image
-#   - runtime main process is started by Railway as real root
-#   - therefore the desktop/session processes inherit UID 0
-#   - apt/dpkg operate on the real filesystem/package database
+USER root
 
-USER 0
+ARG TARGETARCH
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN set -eux; \
+    case "${TARGETARCH}" in \
+        amd64) CF_ARCH="amd64" ;; \
+        arm64) CF_ARCH="arm64" ;; \
+        *) echo "Unsupported architecture: ${TARGETARCH}"; exit 1 ;; \
+    esac; \
+    curl -fsSL \
+      "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-${CF_ARCH}" \
+      -o /usr/local/bin/cloudflared; \
+    chmod +x /usr/local/bin/cloudflared; \
+    cloudflared --version
+
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
 ENV PORT=8080
 ENV SELKIES_PORT=8080
@@ -18,3 +31,5 @@ ENV SELKIES_ENABLE_HTTPS=false
 ENV SELKIES_WAYLAND=false
 
 EXPOSE 8080
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
