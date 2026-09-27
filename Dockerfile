@@ -19,19 +19,20 @@ RUN set -eux; \
     curl -fsSL \
       "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-${CF_ARCH}" \
       -o /usr/local/bin/cloudflared; \
-    chmod +x /usr/local/bin/cloudflared; \
+    chmod 755 /usr/local/bin/cloudflared; \
     cloudflared --version
 
-COPY entrypoint.sh /opt/vp-entrypoint.sh
+# Selkies configuration
+ENV PORT=8080 \
+    SELKIES_PORT=8080 \
+    SELKIES_MODE=websockets \
+    SELKIES_ENABLE_HTTPS=false \
+    SELKIES_WAYLAND=false \
+    PASSWD=yaso
 
-RUN chmod +x /opt/vp-entrypoint.sh
+# Add cloudflared as an s6 supervised service.
+COPY cloudflared-run /etc/services.d/cloudflared/run
 
-ENV PORT=8080
-ENV SELKIES_PORT=8080
-ENV SELKIES_MODE=websockets
-ENV SELKIES_ENABLE_HTTPS=false
-ENV SELKIES_WAYLAND=false
+RUN chmod 755 /etc/services.d/cloudflared/run
 
 EXPOSE 8080
-
-ENTRYPOINT ["/opt/vp-entrypoint.sh"]
