@@ -30,9 +30,7 @@ ENV PORT=8080 \
     SELKIES_WAYLAND=false \
     PASSWD=yaso
 
-# Add cloudflared as an s6 supervised service.
-COPY cloudflared-run /etc/services.d/cloudflared/run
-
-RUN chmod 755 /etc/services.d/cloudflared/run
-
 EXPOSE 8080
+
+ENTRYPOINT ["/entrypoint.sh"]
+
