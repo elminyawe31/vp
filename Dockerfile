@@ -5,8 +5,10 @@ USER root
 ARG TARGETARCH
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl ca-certificates && \
-    rm -rf /var/lib/apt/lists/*
+    apt-get install -y --no-install-recommends \
+        curl \
+        ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 RUN set -eux; \
     case "${TARGETARCH}" in \
@@ -20,9 +22,9 @@ RUN set -eux; \
     chmod +x /usr/local/bin/cloudflared; \
     cloudflared --version
 
-COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY entrypoint.sh /opt/vp-entrypoint.sh
 
-RUN chmod +x /usr/local/bin/entrypoint.sh
+RUN chmod +x /opt/vp-entrypoint.sh
 
 ENV PORT=8080
 ENV SELKIES_PORT=8080
@@ -32,4 +34,4 @@ ENV SELKIES_WAYLAND=false
 
 EXPOSE 8080
 
-ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+ENTRYPOINT ["/opt/vp-entrypoint.sh"]
