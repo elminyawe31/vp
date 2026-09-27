@@ -17,7 +17,7 @@ touch "${CF_LOG}"
 (
     while true; do
         echo "[Cloudflare] Starting tunnel..."
-        
+
         /usr/local/bin/cloudflared tunnel \
             --no-autoupdate \
             --url "http://127.0.0.1:${SELKIES_PORT}" \
@@ -38,6 +38,7 @@ CF_WRAPPER_PID=$!
     LAST_URL=""
 
     while true; do
+
         URL="$(
             grep -oE 'https://[a-zA-Z0-9-]+\.trycloudflare\.com' \
                 "${CF_LOG}" 2>/dev/null |
@@ -62,7 +63,43 @@ CF_WRAPPER_PID=$!
             echo ""
         fi
 
-        sleep 2
+        # ======================================================
+        # Repeat the current Cloudflare URL every 60 seconds
+        # ======================================================
+
+        if [[ -n "${LAST_URL}" ]]; then
+            sleep 60
+
+            # Re-check in case Cloudflare generated a new URL
+            NEW_URL="$(
+                grep -oE 'https://[a-zA-Z0-9-]+\.trycloudflare\.com' \
+                    "${CF_LOG}" 2>/dev/null |
+                tail -n 1 || true
+            )"
+
+            if [[ -n "${NEW_URL}" ]]; then
+                LAST_URL="${NEW_URL}"
+            fi
+
+            echo ""
+            echo "=========================================================="
+            echo "           CLOUDFLARE TUNNEL"
+            echo "=========================================================="
+            echo ""
+            echo "  URL: ${LAST_URL}"
+            echo ""
+            echo "  Selkies: http://127.0.0.1:${SELKIES_PORT}"
+            echo ""
+            echo "  STATUS: ONLINE"
+            echo ""
+            echo "=========================================================="
+            echo ""
+
+        else
+            # No URL yet, check again quickly
+            sleep 2
+        fi
+
     done
 ) &
 
