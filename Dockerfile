@@ -30,16 +30,10 @@ ENV PORT=8080 \
     SELKIES_WAYLAND=false \
     PASSWD=yaso
 
-RUN mkdir -p \
-    /etc/s6-overlay/s6-rc.d/cloudflared/dependencies.d \
-    /etc/s6-overlay/user-bundles.d/user/contents.d
+COPY cloudflared-start.sh /usr/local/bin/cloudflared-start.sh
 
-COPY cloudflared-run /etc/s6-overlay/s6-rc.d/cloudflared/run
+RUN chmod 755 /usr/local/bin/cloudflared-start.sh
 
-RUN printf '%s\n' 'longrun' \
-        > /etc/s6-overlay/s6-rc.d/cloudflared/type && \
-    touch /etc/s6-overlay/s6-rc.d/cloudflared/dependencies.d/base && \
-    touch /etc/s6-overlay/user-bundles.d/user/contents.d/cloudflared && \
-    chmod 755 /etc/s6-overlay/s6-rc.d/cloudflared/run
+ENTRYPOINT ["/usr/local/bin/cloudflared-start.sh"]
 
 EXPOSE 8080
