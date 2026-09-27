@@ -1,0 +1,55 @@
+#!/usr/bin/with-contenv bash
+
+set -Eeuo pipefail
+
+LOG_FILE="/tmp/cloudflared.log"
+
+echo "=============================================="
+echo "     Starting Cloudflare Quick Tunnel"
+echo "=============================================="
+echo ""
+
+rm -f "${LOG_FILE}"
+
+cloudflared tunnel \
+    --no-autoupdate \
+    --url "http://127.0.0.1:${SELKIES_PORT:-8080}" \
+    2>&1 | tee "${LOG_FILE}" &
+
+CF_PID=$!
+
+while true; do
+
+    if ! kill -0 "${CF_PID}" 2>/dev/null; then
+        echo ""
+        echo "Cloudflare tunnel stopped."
+        exit 1
+    fi
+
+    URL="$(grep -oE 'https://[a-zA-Z0-9-]+\.trycloudflare\.com' \
+        "${LOG_FILE}" 2>/dev/null | head -n 1 || true)"
+
+    if [[ -n "${URL}" ]]; then
+        echo ""
+        echo "=============================================="
+        echo "       CLOUDFLARE TUNNEL READY"
+        echo "=============================================="
+        echo ""
+        echo "URL:"
+        echo "${URL}"
+        echo ""
+        echo "Selkies:"
+        echo "http://127.0.0.1:${SELKIES_PORT:-8080}"
+        echo ""
+        echo "Status: ONLINE"
+        echo ""
+        echo "=============================================="
+        echo ""
+
+        break
+    fi
+
+    sleep 1
+done
+
+wait "${CF_PID}"
