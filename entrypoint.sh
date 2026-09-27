@@ -6,24 +6,30 @@ echo "=============================================="
 echo "=       Selkies + Cloudflare Quick Tunnel    ="
 echo "=============================================="
 
-# Start the original Selkies entrypoint in the background.
-echo "[1/2] Starting Selkies..."
+# The Selkies desktop image uses its own startup command.
+# Try the standard entrypoint locations without calling our wrapper.
 
 if [[ -x /entrypoint.sh ]]; then
-    /entrypoint.sh &
+    SELKIES_ENTRYPOINT="/entrypoint.sh"
 elif [[ -x /usr/local/bin/entrypoint ]]; then
-    /usr/local/bin/entrypoint &
+    SELKIES_ENTRYPOINT="/usr/local/bin/entrypoint"
 else
-    echo "ERROR: Could not find the Selkies entrypoint."
+    echo "ERROR: Selkies entrypoint was not found."
+    echo "Available possible entrypoints:"
+    ls -la /entrypoint.sh /usr/local/bin/entrypoint 2>/dev/null || true
     exit 1
 fi
 
+echo "[1/2] Starting Selkies..."
+echo "      Entrypoint: ${SELKIES_ENTRYPOINT}"
+
+"${SELKIES_ENTRYPOINT}" &
 SELKIES_PID=$!
 
 echo "[2/2] Waiting for Selkies on port ${SELKIES_PORT:-8080}..."
 
 for i in $(seq 1 120); do
-    if (echo > /dev/tcp/127.0.0.1/${SELKIES_PORT:-8080}) >/dev/null 2>&1; then
+    if (echo > "/dev/tcp/127.0.0.1/${SELKIES_PORT:-8080}") >/dev/null 2>&1; then
         break
     fi
 
@@ -36,7 +42,7 @@ for i in $(seq 1 120); do
     sleep 1
 done
 
-if ! (echo > /dev/tcp/127.0.0.1/${SELKIES_PORT:-8080}) >/dev/null 2>&1; then
+if ! (echo > "/dev/tcp/127.0.0.1/${SELKIES_PORT:-8080}") >/dev/null 2>&1; then
     echo "ERROR: Selkies did not start on port ${SELKIES_PORT:-8080}."
     exit 1
 fi
@@ -70,4 +76,5 @@ cleanup() {
 
 trap cleanup SIGTERM SIGINT EXIT
 
+# Keep the container alive while Selkies is alive.
 wait "$SELKIES_PID"
